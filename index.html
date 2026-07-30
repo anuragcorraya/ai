@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Chatbot</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #e5ddd5; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .chat-container { width: 450px; height: 80vh; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: #075e54; color: white; padding: 15px; text-align: center; font-size: 1.2rem; font-weight: bold; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+        .msg { padding: 10px 15px; border-radius: 10px; max-width: 80%; line-height: 1.4; font-size: 14px; position: relative; }
+        .user-msg { background: #dcf8c6; align-self: flex-end; color: #000; border-bottom-right-radius: 0; }
+        .ai-msg { background: #ffffff; align-self: flex-start; color: #000; border-bottom-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .input-area { display: flex; padding: 10px; background: #f0f0f0; border-top: 1px solid #ddd; }
+        input { flex: 1; padding: 12px; border: none; border-radius: 25px; outline: none; font-size: 14px; }
+        button { background: #075e54; color: white; border: none; padding: 0 20px; margin-left: 5px; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #128c7e; }
+        .loading { font-style: italic; color: gray; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="header">My Gemini AI Bot</div>
+    <div id="chat-box"></div>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="এখানে কিছু লিখুন..." autocomplete="off">
+        <button onclick="sendMessage()">পাঠান</button>
+    </div>
+</div>
+
+<script>
+    // আপনার দেওয়া API Key টি এখানে বসানো হয়েছে
+    const API_KEY = "AQ.Ab8RN6JDhtxS_SpFU8yQ3X8Qq55OMytd1giyN9TM5rjCrFaAzw";
+    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+
+    function appendMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('msg');
+        msgDiv.classList.add(sender === 'user' ? 'user-msg' : 'ai-msg');
+        msgDiv.innerText = text;
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        // ইউজারের মেসেজ দেখানো
+        appendMessage(text, 'user');
+        userInput.value = '';
+
+        // লোডিং দেখানো
+        const loadingMsg = document.createElement('div');
+        loadingMsg.className = 'msg ai-msg loading';
+        loadingMsg.innerText = "AI উত্তর লিখছে...";
+        chatBox.appendChild(loadingMsg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+            const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "contents": [{
+                        "parts": [{ "text": text }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            chatBox.removeChild(loadingMsg); // লোডিং টেক্সট সরানো
+
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                const aiResponse = data.candidates[0].content.parts[0].text;
+                appendMessage(aiResponse, 'ai');
+            } else {
+                appendMessage("দুঃখিত, কোনো উত্তর পাওয়া যায়নি। আপনার API Key টি চেক করুন।", 'ai');
+            }
+        } catch (error) {
+            chatBox.removeChild(loadingMsg);
+            appendMessage("Error: সংযোগ করা যাচ্ছে না। দয়া করে ইন্টারনেট বা API Key চেক করুন।", 'ai');
+            console.error(error);
+        }
+    }
+
+    // Enter কী চাপলে মেসেজ যাবে
+    userInput.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    });
+</script>
+
+</body>
+</html>
